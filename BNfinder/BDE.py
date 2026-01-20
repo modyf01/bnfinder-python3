@@ -19,8 +19,9 @@
 # such damage.
 #
 
-import math,stats
-from score import score
+import math
+from . import stats
+from .score import score
 
 def log(x):
     return math.log(x,2)
@@ -73,7 +74,7 @@ class BDE(score):
         H=self.H(selected_data.vertex,selected_data.parents)
         stats_all,stats_par = selected_data.stats()
         s = 0
-        if 0 not in map(lambda p: p.n_disc,selected_data.parents+[selected_data.vertex]):
+        if 0 not in list(map(lambda p: p.n_disc,selected_data.parents+[selected_data.vertex])):
             par_counted = set()
             for a,cv in stats_all.items():
                 numbers_of_parents = a[:-1]
@@ -95,4 +96,3 @@ class BDE(score):
                 s+=stats.gammln(HP+cp)-ghp
 
         return s*self.data_factor
-

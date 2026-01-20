@@ -19,26 +19,27 @@
 # such damage.
 #
 
-import graph,fpconst
+from . import graph
+from math import inf
 from heapq import heappush, heappop, heapreplace
 
 # We need this strange wrappers because of python multiprocessing.
 # pool.map cannot use class functions as argument
 def unwrap_score_data_score_MDL(arg, **kwarg):
-    from MDL import MDL
+    from .MDL import MDL
     return MDL.data_score(*arg, **kwarg)
 
 def unwrap_score_data_score_BDE(arg, **kwarg):
-    from BDE import BDE
+    from .BDE import BDE
     return BDE.data_score(*arg, **kwarg)
 
 def unwrap_score_data_score_MIT(arg, **kwarg):
-    from MIT import MIT
+    from .MIT import MIT
     return MIT.data_score(*arg, **kwarg)
 
 def looper(v):
     selected_data, sub, self = v
-    import data
+    from . import data
     selected_data_sub=data.unwrap_dataset_1_subset([selected_data, sub])
     if self.__class__.__name__ == "BDE":
         dat = unwrap_score_data_score_BDE([self, selected_data_sub])
@@ -122,10 +123,10 @@ class score:
             pass # we've exhausted all options
 
                     
-    def learn_1(self,selected_data,verbose=None,n_min=1,limit=None,score_max=fpconst.PosInf,score_delta=fpconst.PosInf, cores=False, picloud=False):
+    def learn_1(self,selected_data,verbose=None,n_min=1,limit=None,score_max=inf,score_delta=inf, cores=False, picloud=False):
         
         if verbose:
-            print 'Learning parents of', selected_data.vertex.name, '...',
+            print('Learning parents of', selected_data.vertex.name, '...')
        
 #        if not self.sloops:
 #            selected_data.rm_sloops()
@@ -152,7 +153,7 @@ class score:
             w_max=p_weights[parents[-1]]
             if w_min==w_max:  # we can use algorithm 2
                 if verbose:
-                    print "Using algorithm 2"
+                    print("Using algorithm 2")
 
                 weight=w_min
                 size = 1
@@ -173,7 +174,7 @@ class score:
                         pool.close()
                         pool.join()
 
-                        for result,sub in itertools.izip(results, sub_obj):
+                        for result, sub in zip(results, sub_obj):
                                 min_set.add(mg+result, sub)
 
 
@@ -188,7 +189,7 @@ class score:
 
             else: # we have to use algorithm 1
                 if verbose:
-                    print "Using algorithm 1"
+                    print("Using algorithm 1")
                     
                 # Parallelized version
                 if (cores) and (cores>1):
@@ -209,8 +210,8 @@ class score:
                             mgs.append(self.graph_score(n,v,[weight],nd))
 
                         import itertools
-                        for score, sub, mg in itertools.izip(scores, subs, mgs):
-                           min_set.add(mg+score, sub)
+                        for score_val, sub, mg in zip(scores, subs, mgs):
+                           min_set.add(mg+score_val, sub)
                         
                         results = pool.map(unwrap_min_set_accepts, [(min_set, mg+mindata) for mg in mgs])
                         del mgs, subs, scores
@@ -244,10 +245,10 @@ class score:
         stop = timeit.default_timer()
         s = str(stop - start)
         if verbose:
-            print "\n----------------------------------------"
-            print 'done ' + v.name, min_set
-            print "Time, secs: ", s
-            print "----------------------------------------"
+            print("\n----------------------------------------")
+            print('done ' + v.name, min_set)
+            print("Time, secs: ", s)
+            print("----------------------------------------")
         return min_set.optimal, min_set.tolist() 
 
 #    def learn_all(self,vertices,data,n_points):
@@ -262,7 +263,7 @@ class score:
         for i,v in enumerate(g.vertices):
             p = g.parents(v)
             selected_data = data.select_1(i,p)
-            sg = self.graph_score(n_vert,v,map(lambda par:par.n_disc,p),len(selected_data))
+            sg = self.graph_score(n_vert,v,list(map(lambda par:par.n_disc,p)),len(selected_data))
             sd = self.data_score(selected_data)
             s+=sg+sd
         return s

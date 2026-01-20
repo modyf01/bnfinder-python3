@@ -20,7 +20,7 @@
 #
 
 import math
-from score import score
+from .score import score
 
 class MDL(score):
     
@@ -76,5 +76,3 @@ class MDL(score):
                 except ZeroDivisionError:
                     pass
         return score*self.data_factor
-
-

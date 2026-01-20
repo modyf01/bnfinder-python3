@@ -1,18 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from BNfinder.MDL import MDL
 from BNfinder.MIT import MIT
 from BNfinder.BDE import BDE
 from BNfinder.data import dataset
 from BNfinder import util
-import copy,StringIO
+import copy
+import io
 try:
     from BNfinder import Rocr
 except: # pyroc as Rocr
     from BNfinder import pyroc as Rocr
     
-def read_preds(str,dts):
-    lines=[ln.strip().split("\t") for ln in str.strip().split("\n")]
+def read_preds(str_data,dts):
+    lines=[ln.strip().split("\t") for ln in str_data.strip().split("\n")]
     res={}
     for ln in lines[1:]:
         cond=ln[0]
@@ -55,28 +56,28 @@ if __name__=="__main__":
     (options, args) = parser.parse_args()
     
     if options.expr==None:
-        print "You must provide the training file name. Run bnf_cv --help for more options."
+        print("You must provide the training file name. Run bnf_cv --help for more options.")
     else:
         if options.verbose:
-            print 'Loading data from:', options.expr, '...',
+            print('Loading data from:', options.expr, '...')
         try:
             d =  dataset(options.expr).fromNewFile(open(options.expr))
         except KeyError:
             if options.verbose:
-                print "Not a new file format. The old format is deprecated!"
+                print("Not a new file format. The old format is deprecated!")
             d = dataset(options.expr).fromFile(open(options.expr))
 
         if options.verbose:
-            print 'done\n'
+            print('done\n')
 
         if options.verbose:
-            print 'Making %d cross-validation folds.\n'%options.k
+            print('Making %d cross-validation folds.\n'%options.k)
 
         if options.k==1:
-            folds=[(range(len(d.points)),range(len(d.points)))]
+            folds=[(list(range(len(d.points))),list(range(len(d.points))))]
         else:
             from BNfinder import CrossVal
-            rnd_state,folds=CrossVal.cv_folds(range(len(d.points)),k=options.k)
+            rnd_state,folds=CrossVal.cv_folds(list(range(len(d.points))),k=options.k)
 
         preds_all=[]
         
@@ -84,7 +85,7 @@ if __name__=="__main__":
             Rocr.device(options.roc)
         for i,(train,test) in enumerate(folds):
             #if options.verbose:
-            print 'Fold %d: \nLearning network '%i, d.name,' with', options.score, 'scoring function'
+            print('Fold %d: \nLearning network '%i, d.name,' with', options.score, 'scoring function')
             d_train=copy.deepcopy(d)
             d_train.points=[d.points[j] for j in train]
             score=eval(options.score)(data_factor=options.df,prior=options.prior,chi_alpha=options.chi,sloops=False)
@@ -96,40 +97,40 @@ if __name__=="__main__":
                             limit=options.limit,\
                             min_empty=options.min_empty,\
                             min_optim=options.min_optim)
-	    if options.frac:
-		g=g.weighted_edges(subpars,float(options.frac))
+            if options.frac:
+                g=g.weighted_edges(subpars,float(options.frac))
             cpd=d_train.to_cpd(g,options.prior)
             d_test=copy.deepcopy(d)
             d_test.points=[d.points[j] for j in test]
-	    #d_test.vertices=[d_test.get_vertice_by_name(n) for n in d_test.regulators[0]]
+            #d_test.vertices=[d_test.get_vertice_by_name(n) for n in d_test.regulators[0]]
             d_test.vertice_names=d_test.regulators[0]
-            cl=StringIO.StringIO()
+            cl=io.StringIO()
             d_test.classify(cpd,cl,prob=1,transformed=True)
-	    #print d.points[5].data[0]
-	    #print d_train.points[5].data[0]
-	    #print d_test.points[5].data[0]
+            #print d.points[5].data[0]
+            #print d_train.points[5].data[0]
+            #print d_test.points[5].data[0]
 	    
             preds=read_preds(cl.getvalue(),d_test)
             preds_all.append(preds)
             if options.roc and options.k==1:
                 for k,(pre,cls) in preds.items():
                     try:
-			#print pre[:20]
+                        #print pre[:20]
                         Rocr.simpleROC(pre,cls,k+"fold %d"%i,options.yax,options.xax,diag=options.diag)
                     except:
-                        print pre,cls
-	    else:
+                        print(pre,cls)
+            else:
                 for k,(pre,cls) in preds.items():
-		    print Rocr.aucROC(pre,cls)
+                    print(Rocr.aucROC(pre,cls))
             if options.verbose:
-                print 'Total score of optimal network:',score
-                print g
-            print g.to_SIF()
+                print('Total score of optimal network:',score)
+                print(g)
+            print(g.to_SIF())
 
             if options.txt:
                 d.write_txt(subpars,options.txt+str(i))
                 if options.verbose:
-                    print "Suboptimal parents sets written to:", options.txt+str(i)
+                    print("Suboptimal parents sets written to:", options.txt+str(i))
 
             if options.net:
                 if options.n_min==1:
@@ -141,8 +142,8 @@ if __name__=="__main__":
                 f.close()
                 #g.toDot().write_dot(options.net)
                 if options.verbose:
-                    print "Network graph written to:", options.net+str(i)
-                    print net_str
+                    print("Network graph written to:", options.net+str(i))
+                    print(net_str)
 
             if options.cpd:
                 f_cpd=open(options.cpd+str(i),"w")
@@ -156,13 +157,13 @@ if __name__=="__main__":
                     util.pprint(f_cpd,d.to_cpd(g,options.prior))
                 f_cpd.close()
                 if options.verbose:
-                    print "Conditional probability distributions written to:", options.cpd+str(i)
+                    print("Conditional probability distributions written to:", options.cpd+str(i))
 
             if options.bif:
                 d.write_bif(g,options.bif+str(i),options.prior,\
                     ['Network graph learned with %s scoring function from expression data file \'%s\'' %(options.score,options.expr)])
                 if options.verbose:
-                    print "Bayesian network written to:", options.bif+str(i)
+                    print("Bayesian network written to:", options.bif+str(i))
 
         
         if options.roc:

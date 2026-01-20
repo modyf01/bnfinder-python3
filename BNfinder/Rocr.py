@@ -13,12 +13,12 @@ def aucROC(predictions,labels,part=1.):
     try:
         l= robjects.IntVector(labels)
     except:
-        print "Problem with data",labels
+        print("Problem with data",labels)
     else:
         try:
             p= robjects.FloatVector(predictions)
         except:
-            print "Problem with data",predictions
+            print("Problem with data",predictions)
         else:
             pred = robjects.r.prediction(p,l)
             
@@ -28,22 +28,22 @@ def simpleROC(predictions,labels,title,y="tpr",x="fpr",diag=True):
     try:
         l= robjects.IntVector(labels)
     except:
-        print "Problem with data",labels
+        print("Problem with data",labels)
     else:
         try:
             p= robjects.FloatVector(predictions)
         except:
-            print "Problem with data",predictions
+            print("Problem with data",predictions)
         else:
             pred = robjects.r.prediction(p,l)
             perf = robjects.r.performance(pred,y,x)
             auc  = robjects.r.performance(pred,"auc").do_slot("y.values")[0][0]
-            print "AUC",auc
+            print("AUC",auc)
             title="%s (AUC=%f)"%(title,auc)
             try:
                 robjects.r.plot(perf,main=title,colorize=True)
             except:
-                print "problem with plotting"
+                print("problem with plotting")
             if diag:
                 robjects.r.abline(a=0,b=1)
     
@@ -56,30 +56,30 @@ def cvROC(predictions,labels,title,y="tpr",x="fpr",diag=True):
             pass
         else:
             bad_folds.append(i)
-    print bad_folds
+    print(bad_folds)
     for i in reversed(bad_folds): #remove in reversed order not to break the indexing
         del predictions[i]
         del labels[i]
         
     #Now do the ROC curve
     try:
-        rlabs=map(robjects.IntVector,labels) #make IntVector out of each CV fold labels
+        rlabs=list(map(robjects.IntVector,labels)) #make IntVector out of each CV fold labels
         ll=robjects.r.list(*rlabs)
     except:
-        print "Problem with data",labels
+        print("Problem with data",labels)
     else:
         try:
-            rpreds=map(robjects.FloatVector,predictions)
+            rpreds=list(map(robjects.FloatVector,predictions))
             pp=robjects.r.list(*rpreds)
         except:
-            print "Problem with data",predictions
+            print("Problem with data",predictions)
         else:
             
             try:
                 pred = robjects.r.prediction(pp,ll)
                 perf = robjects.r.performance(pred,y,x)
             except:
-                print "problem with ROCR",predictions,labels
+                print("problem with ROCR",predictions,labels)
             else:
                 try:
                     robjects.r.plot(perf,main=title,col="grey82")
@@ -87,28 +87,28 @@ def cvROC(predictions,labels,title,y="tpr",x="fpr",diag=True):
                     if diag:
                         robjects.r.abline(a=0,b=1)
                 except:
-                    print "problem with plotting"
+                    print("problem with plotting")
 
 
 def top_n(predictions,labels,title):
     try:
         l= robjects.IntVector(labels)
     except:
-        print "Problem with data",labels
+        print("Problem with data",labels)
     else:
         try:
             p= robjects.FloatVector(predictions)
         except:
-            print "Problem with data",predictions
+            print("Problem with data",predictions)
         else:
             pred = robjects.r.prediction(p,l)
             perf = robjects.r.performance(pred,"prec","rec")
             xvs=perf.do_slot("x.values")[0]
             yvs=perf.do_slot("y.values")[0]
-            print "AUC",auc
+            print("AUC",auc)
             title="%s (AUC=%f)"%(title,auc)
             try:
                 robjects.r.plot(perf,main=title,colorize=True)
             except:
-                print "problem with plotting"
+                print("problem with plotting")
             robjects.r.abline(a=0,b=1)

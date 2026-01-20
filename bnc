@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.5
+#!/usr/bin/env python3
 
 from BNfinder.data import dataset
 
@@ -17,7 +17,7 @@ if __name__=="__main__":
     (options, args) = parser.parse_args()
 
     if options.cpd==None or options.data==None:
-        print "You must provide a cpd file and input data. Run bnc --help for more options."
+        print("You must provide a cpd file and input data. Run bnc --help for more options.")
     else:
         cpd=eval(open(options.cpd).read())
         d=dataset().fromNewFile(open(options.data),float_transform=None)

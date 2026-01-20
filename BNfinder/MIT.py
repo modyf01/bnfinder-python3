@@ -19,8 +19,9 @@
 # such damage.
 #
 
-import math,fpconst
-from score import score
+import math
+from math import inf
+from .score import score
 from scipy.stats import chi2
 
 class MIT(score):
@@ -93,5 +94,3 @@ class MIT(score):
         return 2*number_of_effective_observations*score*self.data_factor
         #print "d_score: ", score
         #return score
-
-

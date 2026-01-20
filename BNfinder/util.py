@@ -65,7 +65,7 @@ def bin_search(x,l,b=0,e=None):
     if e==None:
         e=len(l)-1
     while b<e-1:
-        i=(b+e)/2
+        i=(b+e)//2
         if l[i]<x:
             b=i
         elif l[i]>x:
@@ -99,5 +99,6 @@ def rand_exp(n_genes,n_exp,n_disc):
 def test(n,m,d):
     """Testing function. Old code...
     """
+    from .MDL import MDL
     e = rand_exp(n,m,d)
-    return d.learn_1(MDL(),0,range(n),e)
+    return d.learn_1(MDL(),0,list(range(n)),e)

@@ -1,4 +1,6 @@
-import random,collections
+import random
+import collections
+from functools import reduce
 
 def combine_fold(folds,i):
     testing=folds[i]
@@ -19,7 +21,7 @@ def cv_folds(elems,k=10,classes=None,state=None):
         d=collections.defaultdict(list)
         for el,cl in zip(elems,classes):
             d[cl].append(el)
-        lists=d.values()
+        lists=list(d.values())
 
     #shuffle the elements
     shuffled=[]

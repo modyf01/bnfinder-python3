@@ -1,2 +1,2 @@
 #dummy package module
-version=1
+version = 3

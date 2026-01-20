@@ -54,7 +54,7 @@ class graph:
             self.edges[st].append(end)
         except KeyError:
             if st not in self.vertices:
-                raise "Wrong starting vertice"
+                raise Exception("Wrong starting vertice")
             self.edges[st] =[end]
             
         self.edge_labelling[st,end]=label
@@ -159,15 +159,15 @@ class graph:
         for m in meths:
             avg[m]=0.0
         for v in self.vertices:
-            vec=map(lambda m: self.c_v(v,m),meths)
+            vec=list(map(lambda m: self.c_v(v,m),meths))
             s=sum(vec)
             if s==0.0:
                 norm_vec=vec
             else:
-                norm_vec=map(lambda x: x/s,vec)
+                norm_vec=list(map(lambda x: x/s,vec))
             lst.append(norm_vec)
-            for m,v in zip(meths,norm_vec):
-                avg[m]+=v
+            for m,val in zip(meths,norm_vec):
+                avg[m]+=val
         s_all=sum(avg.values())
         for m in meths:
             avg[m]/=s_all
@@ -179,7 +179,7 @@ class graph:
         """
         import random
         self.__init__()
-        self.vertices=range(n)
+        self.vertices=list(range(n))
         for v in self.vertices:
             self.edges[v]=random.sample(self.vertices,k)
 
@@ -189,7 +189,7 @@ class graph:
         """
         import random
         self.__init__()
-        self.vertices=range(n)
+        self.vertices=list(range(n))
         for v in self.vertices:
             self.vertice_labelling[v]=random.choice(v_labels)
             self.edges[v]=[]
@@ -295,7 +295,7 @@ class graph:
         f,fn = tempfile.mkstemp(".jpg")
         #f.close()
         self.toDot().write_jpg(fn)
-        import Image
+        from PIL import Image
         im = Image.open(fn)
         im.show()
         import os
@@ -324,9 +324,9 @@ class graph:
         ln = f.readline()
         par = []
         while ln and ln.find("-")==-1:
-            par.append(map(int,ln.strip().split()))
+            par.append(list(map(int,ln.strip().split())))
             ln = f.readline()
-        self.fromParents(range(len(par)),par)
+        self.fromParents(list(range(len(par))),par)
 
     def num_edges(self):
         return sum(map(len,self.edges.values()))
@@ -346,8 +346,8 @@ class graph:
                             x2+=1
                     except KeyError:
                         pass
-        print s1,s2,x,n2
-        print s1,s2,x2,n2
+        print(s1,s2,x,n2)
+        print(s1,s2,x2,n2)
         sens = x*1.0/s2
         spec = 1.0*(n2-s1-s2+x)/(n2-s2)
         return hyp_geom(float(s1),float(s2),float(x),float(n2)),binom_p(x,s1,s2,n2),binom_p(x2,s1,s2,n2,0.33),sens,spec
@@ -439,7 +439,7 @@ class graph:
         #find the intersection of vertices
         g1 = self.labels_2_verts()
         g2 = other.labels_2_verts()
-        l = filter(lambda x: x in g2.vertices, g1.vertices)
+        l = list(filter(lambda x: x in g2.vertices, g1.vertices))
         g3 = g1.subgraph(l,forward=False)
         g4 = g2.subgraph(l,forward=False)
         #print g3,g4,l
@@ -489,10 +489,10 @@ def hyp_geom(s1,s2,x,n):
         return res
     if s1<s2:
         return hyp_geom(s2,s1,x,n)
-    sum = 0
-    for i in range(x,s1+1):
-        sum +=s(s1,s2,i,n)
-    return sum
+    sum_val = 0
+    for i in range(x,int(s1)+1):
+        sum_val +=s(s1,s2,i,n)
+    return sum_val
 
 
 def fact(n):

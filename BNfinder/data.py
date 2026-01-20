@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.5
+#!/usr/bin/env python3
 # Copyright (c) 2004-2007 Bartek Wilczynski and Norbert Dojer; All Rights Reserved.
 #
 # This software is distributable under the terms of the GNU
@@ -20,15 +20,17 @@
 # such damage.
 #
 
-import graph,stats,math,fpconst
+from . import graph, stats
+import math
 from itertools import chain
-from BDE import BDE
-from MDL import MDL
-from MIT import MIT
-import continuous
-import util
-from math import log
+from .BDE import BDE
+from .MDL import MDL
+from .MIT import MIT
+from . import continuous
+from . import util
+from math import log, inf
 from random import shuffle
+from functools import reduce
 
 
 def eval_func(f_args):
@@ -40,14 +42,7 @@ def learn_x(v):
 
     selected_data = self.select_1(x, sloops=scr.sloops)
 
-    # dict comprehensions were introduced only in python 2.7
-    import sys
-    if sys.version_info >= (2,7,0):
-        x_priors = {p : self.get_prior(x,p) for p in selected_data.parents}
-    else:
-        x_priors = {}
-        for p in selected_data.parents:
-            x_priors[p] = self.get_prior(x, p)
+    x_priors = {p : self.get_prior(x,p) for p in selected_data.parents}
 
     selected_data.weight_parents(x_priors,fpr_factor,max_tries,scr)
 
@@ -55,11 +50,11 @@ def learn_x(v):
         score_empty=scr.data_score(selected_data.subset([]))+scr.graph_score(len(selected_data.parents),x,[],len(selected_data))
         score_max=score_empty-math.log(min_empty,2)
     else:
-        score_max=fpconst.PosInf
+        score_max=inf
     if min_optim:
         score_delta=-math.log(min_optim,2)
     else:
-        score_delta=fpconst.PosInf
+        score_delta=inf
     (par,sc),minlist = scr.learn_1(selected_data,verbose,n_min,limit,score_max,score_delta,cores)
     return x,par,minlist,sc
 
@@ -157,7 +152,7 @@ class dataset_1:
                 for par in self.parents:
                     self.weights[par]=par.base_weight()**priors[par]
             # sort parents and data according to weights
-            order = [i for i,p in sorted(enumerate(self.parents), key = lambda (i,par) : self.weights[par])]
+            order = [i for i, p in sorted(enumerate(self.parents), key=lambda x: self.weights[x[1]])]
             self.parents = [self.parents[i] for i in order]
             self.data = [self.data[i] for i in order]+[self.data[-1]]
             
@@ -170,10 +165,10 @@ class dataset_1:
         """
         res={}
         for i,p in enumerate(self.parents):
-	    try:
-		sign = stats.pearsonr(self.data[i],self.data[-1])[0]
-	    except ValueError:
-		print self.data[i],self.data[-1]
+            try:
+                sign = stats.pearsonr(self.data[i],self.data[-1])[0]
+            except ValueError:
+                print(self.data[i],self.data[-1])
             if sign >=0:
                 res[p]="+"
             else:
@@ -190,13 +185,7 @@ class dataset_1:
         data.append(self.data[-1])
         d1 = dataset_1(data,self.vertex,parents)
         if self.weights:
-            # dict comprehensions were introduced only in python 2.7
-            import sys
-            if sys.version_info >= (2,7,0):
-                d1.weights = {par : self.weights[par] for par in parents}
-            else:
-                for par in parents:
-                    d1.weights[par] = self.weights[par]
+            d1.weights = {par : self.weights[par] for par in parents}
         return d1
         
 #    def rm_sloops(self):
@@ -242,14 +231,14 @@ class dataset_1:
                     strec(key+(0,),prob*(1-first),rest)
                     strec(key+(1,),prob*first,rest)
                     
-        d_disc=map(lambda p: p.n_disc,self.parents+[self.vertex])
+        d_disc=list(map(lambda p: p.n_disc,self.parents+[self.vertex]))
         if 0 not in d_disc: #are all variables discrete?
             return stats_disc(self.data) # -yes
         # -no
         stats_all = {}
         stats_par = {}
         for d in zip(*self.data):
-            strec((),1,zip(d,d_disc))
+            strec((),1,list(zip(d,d_disc)))
         return stats_all,stats_par
         
 class gene:
@@ -275,7 +264,7 @@ class gene:
         """
         if self.values:
             try:
-                return map(int,self.values)
+                return list(map(int,self.values))
             except ValueError:
                 return self.values
         else:
@@ -346,25 +335,25 @@ class dataset:
             self.vertices.append(gene(ln[0],n_disc,i))
             if n_disc==0:
                 if float_transform: #use float_transformn if specified
-                    lines.append(float_transform.estTrans(map(float,ln[2:])))
+                    lines.append(float_transform.estTrans(list(map(float,ln[2:]))))
                 else:
-                    lines.append(map(float,ln[2:]))
+                    lines.append(list(map(float,ln[2:])))
             else:
-                lines.append(map(int,ln[2:]))
+                lines.append(list(map(int,ln[2:])))
         self.points=[]
         i=0
         for s,p in series:
             d = []
             for k in range(s): 
-                d.append(map(lambda x:x[i],lines))
+                d.append(list(map(lambda x:x[i],lines)))
                 i+=1
             name="serie%d"%len(self.points)
-            self.points.append(experiment(name,d,p,range(len(d))))
+            self.points.append(experiment(name,d,p,list(range(len(d)))))
 
 #        for v in self.vertices:
 #            v.parents=map(lambda v: (float(max(self.cont_weight,v.n_disc)),v),self.vertices)
         for e in self.points:
-            e.perturbed=map(lambda i: self.vertices[i],e.perturbed)
+            e.perturbed=list(map(lambda i: self.vertices[i],e.perturbed))
         return self
 
     def toNewFile(self,file):
@@ -409,18 +398,18 @@ class dataset:
             if rec[0]=="#perturbed": #experiment serie name followed by list of its perturbed vertices
                 pert.append((rec[1],rec[2:]))
             elif rec[0]=="#regulators": #list of potential regulators of all vertices (except specified in #parents command) not specified in previous or present #regulators command
-                reg=filter(lambda x:True not in map(lambda r:x in r,regul),rec[1:])
+                reg=list(filter(lambda x:True not in list(map(lambda r:x in r,regul)),rec[1:]))
                 for i,r in enumerate(reg):
                     if i!=reg.index(r):
                         reg[i]=None
-                reg=filter(None,reg)
+                reg=list(filter(None,reg))
                 regul.append(reg)
             elif rec[0]=="#parents": #vertice name followed by list of its potential regulators
                 reg=rec[2:]
                 for i in range(len(reg)):
                     if i!=reg.index(reg[i]):
                         reg[i]=None
-                reg=filter(None,reg)
+                reg=list(filter(None,reg))
                 self.parents[rec[1]]=reg
             elif rec[0]=="#default": #list of default possible values or 'FLOAT' for default continuous values
                 if len(rec)==2 and rec[1]=="FLOAT":
@@ -468,7 +457,7 @@ class dataset:
         #else:
         #    self.static=False
         if self.static:
-            conds=map(lambda x : [x],rec[1:])
+            conds=list(map(lambda x : [x],rec[1:]))
             names=conds
         else:
             # todo:pbd serie not used any more?
@@ -497,7 +486,7 @@ class dataset:
         self.vertice_names=[]
         #prepare the lists for expression data
         n_cond=sum(map(len,conds))
-        exp_data=map(lambda l: [ [] for el in l],conds)
+        exp_data=list(map(lambda l: [ [] for el in l],conds))
         geneindex=0
         while ln: #expression data
             rec=ln.strip().split()
@@ -539,7 +528,7 @@ class dataset:
                     #let's sort the values
                     vals.sort()
             else: #not discrete
-                line=map(float,rec[1:])
+                line=list(map(float,rec[1:]))
                 float_params=[]
                 if float_transform: #use float_transform if specified
                     float_params=float_transform.estimate(line)
@@ -576,7 +565,7 @@ class dataset:
             pg = []
             for x,p in pert:
                 if x==n:
-                    pg.extend(map(lambda n: self.vertices[self.vertice_names.index(n)],p))# map gene names to indexes
+                    pg.extend(list(map(lambda n: self.vertices[self.vertice_names.index(n)],p)))# map gene names to indexes
             
             self.points.append(experiment(n,exp_data[i],pg,c,self.static))
 
@@ -599,13 +588,13 @@ class dataset:
             if vertex not in expment.perturbed:
                 for sample in expment.data:
                     res.append([sample[par] for par in parents]+[sample[vertex+self.n_gen]])
-        return dataset_1(map(list,zip(*res)),vertex,parents)
+        return dataset_1(list(map(list,zip(*res))),vertex,parents)
 
 
     def get_potential_parents(self, node, sloops=True):
         """selects potential parents for node"""
-        if self.parents.has_key(node.name): # potential parents of a node are explicitly specified
-            parents=map(lambda n: self.vertices[self.vertice_names.index(n)],self.parents[node.name])
+        if node.name in self.parents: # potential parents of a node are explicitly specified
+            parents=list(map(lambda n: self.vertices[self.vertice_names.index(n)],self.parents[node.name]))
         elif self.regulators: # regulators are specified
             parents=[]
             for r in self.regulators:
@@ -613,7 +602,7 @@ class dataset:
                 if node.name in r:
                     break
                 else:
-                    parents.extend(map(lambda n: self.vertices[self.vertice_names.index(n)],r))
+                    parents.extend(list(map(lambda n: self.vertices[self.vertice_names.index(n)],r)))
         else: # all vertices are potential parents
             parents=[v for v in self.vertices]
         if not sloops:
@@ -671,7 +660,7 @@ class dataset:
                     import multiprocessing
                     import multiprocessing.pool
                 except ImportError:
-                    print "Problem invoking multiprocessing module. Running on a single CPU"
+                    print("Problem invoking multiprocessing module. Running on a single CPU")
                     cores=False
                 else:
                     # Daemonic processes are not allowed to have children
@@ -697,9 +686,8 @@ class dataset:
                     distribs = []
                     # Computational part
                     if verbose:
-                        print "Computing in parallel"
+                        print("Computing in parallel")
 
-                    from itertools import izip,repeat
                     import timeit
                     start = timeit.default_timer()
 
@@ -711,9 +699,9 @@ class dataset:
                                 else:
                                     distribs.append(cores)
 
-                            result = map(learn_x, [(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, y) for x, y in zip(vertices, distribs)])
+                            result = list(map(learn_x, [(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, y) for x, y in zip(vertices, distribs)]))
                         else:
-                            result = map(learn_x, [(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, cores) for x in vertices])
+                            result = list(map(learn_x, [(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, cores) for x in vertices]))
 
                     if (alg=="hybrid"):
                         # There are two situations: number of cores >= number of vertices and opposite one.
@@ -730,9 +718,9 @@ class dataset:
 
                             for counter in range(length):
                                 if (counter<=(cores%length)):
-                                    distribs.append(cores/length + 1)
+                                    distribs.append(cores//length + 1)
                                 else:
-                                    distribs.append(cores/length)
+                                    distribs.append(cores//length)
                         else:
                             pool=MyPool(cores)
                             distribs = [1 for i in range(len(vertices))]
@@ -747,22 +735,22 @@ class dataset:
                     s = str(stop - start)
 
                     if verbose:
-                        print "----------------------------------------"
-                        print "Time, secs: ", s
+                        print("----------------------------------------")
+                        print("Time, secs: ", s)
                         # Save computational time to file
                         with open("time"+str(cores)+".txt", 'w') as file:
                             file.write(s)
 
                 # Save computed subset of genes to file
                 if (subset) and (subset != "concat"):
-                    file_pi = open("genes_"+filename+".obj", 'w') 
+                    file_pi = open("genes_"+filename+".obj", 'wb') 
                     import pickle
                     pickle.dump(result, file_pi)
                     exit()
                  
             # Computing without any parallelizing                   
             else:
-                result=map(learn_x,[(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, cores) for x in self.vertices])
+                result=list(map(learn_x,[(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, cores) for x in self.vertices]))
 
         # Concatenating previously computed subsets of genes
         elif subset == "concat":
@@ -777,7 +765,7 @@ class dataset:
                 break
 
             for name in names:
-                file_pi = open(os.getcwd()+"/"+name)
+                file_pi = open(os.getcwd()+"/"+name, 'rb')
                 result.extend(pickle.load(file_pi))
 
         #print result
@@ -799,7 +787,7 @@ class dataset:
             try:
                 par_list.append(pars[v.__index__()])
             except KeyError:
-                print "ERRR",par_list,v.name,id(v),v.__index__(),[map(lambda x:(x.name,id(x)),l) for l in pars.values()]
+                print("ERRR",par_list,v.name,id(v),v.__index__(),[list(map(lambda x:(x.name,id(x)),l)) for l in pars.values()])
         pars=par_list
 
         g = graph.graph()
@@ -888,7 +876,7 @@ class dataset:
                 var_d={}
                 result[str(v)]=var_d
                 var_d["vals"]=v.values
-                var_d["pars"]=map(str,g.parents(v))
+                var_d["pars"]=list(map(str,g.parents(v)))
                 var_d["floatParams"]=str(v.floatParams)
                 if v.cpd=='and':
                     var_d["type"]="and"
@@ -929,7 +917,7 @@ class dataset:
             stats_all,stats_par = self.select_1(v,g.parents(v)).stats()
             f.write('\''+str(v)+'\' : {\n')
             f.write('  \'vals\' : '+str(v.values)+' ,\n')
-            f.write('  \'pars\' : '+str(map(str,g.parents(v)))+' ,\n')
+            f.write('  \'pars\' : '+str(list(map(str,g.parents(v))))+' ,\n')
             if v.cpd=='and':
                 f.write('  \'type\' : \'and\' ,\n')
             elif v.cpd=='or':
@@ -1003,23 +991,22 @@ class dataset:
     def point2dict(self,i):
         """returns a dictionary representing one (i-th) data-point
         """
-	#
-	return dict([(x,self.points[i].data[0][self.get_vertice_by_name(x)]) for x in self.vertice_names])
+        return dict([(x,self.points[i].data[0][self.get_vertice_by_name(x)]) for x in self.vertice_names])
         #return dict(zip(self.vertice_names+map(lambda x: x+"'",self.vertice_names),self.points[i].data[0]))
 	
     def get_vertice_by_name(self,name):
         """Returns vertex of self corresponding to the given name
         """
-	for v in self.vertices:
-	    if v.name==name:
-		return v
+        for v in self.vertices:
+            if v.name==name:
+                return v
         #return self.vertices[self.vertice_names.index(name)]
     
     def get_probs(self,d,cpd,pars,transformed=False):
         """returns list of posterior probabilities of all parents being in all possible states.
 
         for discrete variables gives singular distributions, important for continuous vars.
-	if transformef==True then we assume that the dataset is already transformed into probabilities, otherwise apply continuous transformation
+        if transformef==True then we assume that the dataset is already transformed into probabilities, otherwise apply continuous transformation
         """
         res=[]
         import collections
@@ -1030,12 +1017,12 @@ class dataset:
                 dd[d[p]]=1.0
                 res.append(dd) #singular distribution for discrete vars
             else: #continuous vars need care
-		if transformed:
-		    x=d[p]
-		else:
-		    model=continuous.BiNormMeans()
-		    model.fromParams(eval(cpd[p]["floatParams"]))
-		    x=model.transform([d[p]])[0] # x -> probability of parent being 1
+                if transformed:
+                    x=d[p]
+                else:
+                    model=continuous.BiNormMeans()
+                    model.fromParams(eval(cpd[p]["floatParams"]))
+                    x=model.transform([d[p]])[0] # x -> probability of parent being 1
                 res.append({1:x,0:1-x})
 #        print res
 #        a=b
@@ -1057,7 +1044,7 @@ class dataset:
         for p in self.points:
             f.write("\t%s"%p.name[0])
         f.write("\n")
-        dicts=map(self.point2dict,range(len(self.points)))
+        dicts=list(map(self.point2dict,range(len(self.points))))
         for v in cpd.keys():
             if v not in self.vertice_names:
                 f.write("%s\t"%v)
@@ -1077,17 +1064,17 @@ class dataset:
                                     pass
                                 
                     ret_d=total_prob
-		    if i==5:
-			#print i,probs,total_prob,c["vals"],dicts[i][c["pars"][0]],c["pars"],self.points[i].data[0][self.get_vertice_by_name(c["pars"][0])]
-			#print self.get_vertice_by_name(c["pars"][0]).index
-			#print dicts[i].items()
-			#print [(self.get_vertice_by_name(x).index,self.points[i].data[0][self.get_vertice_by_name(x)]) for x in self.vertice_names]
-			for v in self.vertices:
-			    #print v.name[:10],v.index,
-			    pass
+                    if i==5:
+                        #print i,probs,total_prob,c["vals"],dicts[i][c["pars"][0]],c["pars"],self.points[i].data[0][self.get_vertice_by_name(c["pars"][0])]
+                        #print self.get_vertice_by_name(c["pars"][0]).index
+                        #print dicts[i].items()
+                        #print [(self.get_vertice_by_name(x).index,self.points[i].data[0][self.get_vertice_by_name(x)]) for x in self.vertice_names]
+                        for v in self.vertices:
+                            #print v.name[:10],v.index,
+                            pass
                     #print ret_d
                     if ML: # Max likelihod
-                        f.write("%s\t"%(str(sorted(zip(*reversed(zip(*(ret_d.items())))))[-1][-1]))) # pick the arg max from ret_d
+                        f.write("%s\t"%(str(sorted(zip(*reversed(list(zip(*(ret_d.items()))))))[-1][-1]))) # pick the arg max from ret_d
                     elif prob!=None: # the probability of a given value
                         try:
                             f.write("%s\t"%(str(ret_d[prob])))
@@ -1131,7 +1118,7 @@ class dataset:
            output only the probability of a sigle class
         """
         result={}
-        dicts=map(self.point2dict,range(len(self.points)))
+        dicts=list(map(self.point2dict,range(len(self.points))))
         for v in cpd.keys():
             if v not in self.vertice_names:
                 c=cpd[v]
@@ -1152,7 +1139,7 @@ class dataset:
                     ret_d=total_prob
                     #print p.name[0],v
                     if ML: # Max likelihod
-                        result[p.name[0],v]=sorted(zip(*reversed(zip(*(ret_d.items())))))[-1][-1] # pick the arg max from ret_d
+                        result[p.name[0],v]=sorted(zip(*reversed(list(zip(*(ret_d.items()))))))[-1][-1] # pick the arg max from ret_d
                     elif prob!=None: # the probability of a given value
                         try:
                             result[p.name[0],v]=(ret_d[prob])
@@ -1172,4 +1159,4 @@ if __name__=="__main__":
         new.close()
         old.close()
     except:
-        print "As a quick and dirty solution for transforming old-style files into new style input files you may just run:\n python data.py old_file.txt new_file.txt"
+        print("As a quick and dirty solution for transforming old-style files into new style input files you may just run:\n python data.py old_file.txt new_file.txt")

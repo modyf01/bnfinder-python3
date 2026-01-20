@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from BNfinder.MDL import MDL
 from BNfinder.MIT import MIT
@@ -37,15 +37,15 @@ if __name__=="__main__":
     (options, args) = parser.parse_args()
 
     if options.expr==None:
-        print "You must provide an expression file name. Run bnf --help for more options."
+        print("You must provide an expression file name. Run bnf --help for more options.")
     else:
         if options.verbose:
-            print 'Loading data from:', options.expr, '...',
+            print('Loading data from:', options.expr, '...')
         try:
             d =  dataset(options.expr).fromNewFile(open(options.expr))
         except KeyError:
             if options.verbose:
-                print "Not a new file format. The old format is deprecated!"
+                print("Not a new file format. The old format is deprecated!")
             d = dataset(options.expr).fromFile(open(options.expr))
             
 #        if any([x.n_disc==0 for x in d.vertices]) and options.score=="MIT":
@@ -54,7 +54,7 @@ if __name__=="__main__":
             
 
         if options.verbose:
-            print 'done\nLearning network ', d.name,' with', options.score, 'scoring function'
+            print('done\nLearning network ', d.name,' with', options.score, 'scoring function')
 
         score=eval(options.score)(data_factor=options.df,prior=options.prior,chi_alpha=options.chi,sloops=options.sloops)
         score,g,subpars = d.learn(score=score,\
@@ -71,14 +71,14 @@ if __name__=="__main__":
                         fpr=options.fpr,
                         max_tries=options.max_tries,)
         if options.verbose:
-            print 'Total score of optimal network:',score
-            print g.to_SIF()
+            print('Total score of optimal network:',score)
+            print(g.to_SIF())
             #print g.to_SIF(subpars)
 
         if options.txt:
             d.write_txt(subpars,options.txt)
             if options.verbose:
-                print "Suboptimal parents sets written to:", options.txt
+                print("Suboptimal parents sets written to:", options.txt)
             
         if options.net:
             if options.n_min==1:
@@ -90,8 +90,8 @@ if __name__=="__main__":
             f.close()
             #g.toDot().write_dot(options.net)
             if options.verbose:
-                print "Network graph written to:", options.net
-                print net_str
+                print("Network graph written to:", options.net)
+                print(net_str)
                 
         if options.cpd:
             f_cpd=open(options.cpd,"w")
@@ -105,10 +105,10 @@ if __name__=="__main__":
                 util.pprint(f_cpd,d.to_cpd(g,options.prior))
             f_cpd.close()
             if options.verbose:
-                print "Conditional probability distributions written to:", options.cpd
+                print("Conditional probability distributions written to:", options.cpd)
             
         if options.bif:
             d.write_bif(g,options.bif,options.prior,\
                 ['Network graph learned with %s scoring function from expression data file \'%s\'' %(options.score,options.expr)])
             if options.verbose:
-                print "Bayesian network written to:", options.bif
+                print("Bayesian network written to:", options.bif)

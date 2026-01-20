@@ -19,7 +19,9 @@
 # such damage.
 #
 
-import stats,math,util
+from . import stats
+import math
+from . import util
 
 def linspace(minv,maxv,num):
     """
@@ -108,13 +110,13 @@ class BiNormMeans(BiNormTransform):
     """
     def estimate(self,l):
         def sumvar(l,m):
-            return stats.sum(map(lambda x:(x-m)**2,l))
+            return stats.sum(list(map(lambda x:(x-m)**2,l)))
         med=stats.lmedianscore(l)
         oldmed=med+1
         while med!=oldmed:
-            l0=filter(lambda x: x<med,l)
-            l1=filter(lambda x: x>med,l)
-            lm=filter(lambda x: x==med,l)
+            l0=list(filter(lambda x: x<med,l))
+            l1=list(filter(lambda x: x>med,l))
+            lm=list(filter(lambda x: x==med,l))
             mu0=stats.mean(l0*2+lm)
             mu1=stats.mean(l1*2+lm)
             (oldmed,med)=(med,(mu0+mu1)/2)

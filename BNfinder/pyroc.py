@@ -31,8 +31,8 @@ v1.0 (4/09) -- Initial module
 Adapted for BNFinder by BW, 2013
 """
 import warnings
-import sets
 import random
+from functools import cmp_to_key
 
 try:
 	import pylab
@@ -49,11 +49,11 @@ def close():
     pass
 def labchange(lab):
     if lab==0:
-	return -1
+        return -1
     elif lab==1:
-	return lab
+        return lab
     else:
-	raise ValueError
+        raise ValueError
 
 def cvROCauc(predictions,labels):
     bad_folds=[]
@@ -62,30 +62,30 @@ def cvROCauc(predictions,labels):
             pass
         else:
             bad_folds.append(i)
-    print bad_folds	
+    print(bad_folds)	
     for i in reversed(bad_folds): #remove in reversed order not to break the indexing
         del predictions[i]
         del labels[i]
 	
     for i,labs in enumerate(labels):
-	labels[i]=map(labchange,labs)
-    rocs=[ROCCalc(zip(l,p),linestyle("k-")) for l,p in zip(labels,predictions)]
+        labels[i]=list(map(labchange,labs))
+    rocs=[ROCCalc(list(zip(l,p)),linestyle("k-")) for l,p in zip(labels,predictions)]
     aucs=sum([r.auc() for r in rocs])/len(rocs)
     return aucs
     
 def aucROC(preds,labels,part=1.):
     if type(preds[0])==type([]): #is this crossvalidated?
-	print "XXXXXXXXXXXXXXXXXXXXXXXXXcross"
-	return cvROCauc(preds,labs)
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXcross")
+        return cvROCauc(preds,labs)
     else:
-	labs=map(labchange,labels)
-	roc=ROCCalc(zip(labs,preds),"x",linestyle="k-")
-	return roc.auc()
+        labs=list(map(labchange,labels))
+        roc=ROCCalc(list(zip(labs,preds)),"x",linestyle="k-")
+        return roc.auc()
 
 def simpleROC(preds,labels,title,y="tpr",x="fpr",diag=True):
-    labs=map(labchange,labels)
+    labs=list(map(labchange,labels))
     #print zip(labs,preds)
-    roc=ROCCalc(zip(labs,preds),title,linestyle="k.-")
+    roc=ROCCalc(list(zip(labs,preds)),title,linestyle="k.-")
     roc.plot(output_file+title+".pdf",title+" (AUC=%f)"%roc.auc(),include_baseline=diag)
 
 def cvROC(predictions,labels,title,y="tpr",x="fpr",diag=True):
@@ -95,22 +95,22 @@ def cvROC(predictions,labels,title,y="tpr",x="fpr",diag=True):
             pass
         else:
             bad_folds.append(i)
-    print bad_folds	
+    print(bad_folds)	
     for i in reversed(bad_folds): #remove in reversed order not to break the indexing
         del predictions[i]
         del labels[i]
 	
     for i,labs in enumerate(labels):
-	labels[i]=map(labchange,labs)
+        labels[i]=list(map(labchange,labs))
 	
-    rocs=[ROCCalc(zip(l,p),linestyle="k-") for l,p in zip(labels,predictions)]
+    rocs=[ROCCalc(list(zip(l,p)),linestyle="k-") for l,p in zip(labels,predictions)]
     plot_multiple_roc(rocs,output_file+title+".pdf",title,include_baseline=diag)
     
 
 # end of new functions
 def random_mixture_model(pos_mu=.6,pos_sigma=.1,neg_mu=.4,neg_sigma=.1,size=200):
-	pos = [(1,random.gauss(pos_mu,pos_sigma),) for x in xrange(size/2)]
-	neg = [(-1,random.gauss(neg_mu,neg_sigma),) for x in xrange(size/2)]
+	pos = [(1,random.gauss(pos_mu,pos_sigma),) for x in range(size//2)]
+	neg = [(-1,random.gauss(neg_mu,neg_sigma),) for x in range(size//2)]
 	return pos+neg
 
 def deduplicate_styles(rocs_list):
@@ -130,15 +130,15 @@ def deduplicate_styles(rocs_list):
 				if len(pref_styles) > 0:
 					pstyle = pref_styles.pop()
 					if pstyle not in rand_ls:
-	 					r.linestyle = pstyle
-	 					rand_ls.append(pstyle)
-	 					break
-	 			else:
-	 				ls = ''.join(random.sample(COLORS,1)+random.sample(POINTS,1)+random.sample(LINES,1))
-	 				if ls not in rand_ls:
-	 					r.linestyle = ls
-	 					rand_ls.append(ls)
-	 					break
+ 						r.linestyle = pstyle
+ 						rand_ls.append(pstyle)
+ 						break
+				else:
+ 					ls = ''.join(random.sample(COLORS,1)+random.sample(POINTS,1)+random.sample(LINES,1))
+ 					if ls not in rand_ls:
+ 						r.linestyle = ls
+ 						rand_ls.append(ls)
+ 						break
 
 def plot_multiple_rocs_separate(l_roccalc,fname,title='',labels=None,equal_aspect=True):
 	"""Plots multiple ROC charts as separate on the same canvas."""
@@ -211,7 +211,7 @@ class ROCCalc():
 			t[1] = a score (does not have to be bounded by -1 and 1)
 			t[2] = any label (optional)
 		"""
-		self.data = sorted(data,lambda x,y: cmp(y[1],x[1]))		
+		self.data = sorted(data, key=cmp_to_key(lambda x, y: (y[1] > x[1]) - (y[1] < x[1])))
 		self.linestyle = linestyle		
 		self.auc() # Seed initial points with default full ROC
 
@@ -241,10 +241,10 @@ class ROCCalc():
 		neg_data = [x for x in self.data if x[1] < threshold]
 		tp,fp,fn,tn = self._calc_counts(pos_data,neg_data)
 		if do_print:
-			print "\tActual class"
-			print "\t+(1)\t-(0)"
-			print "+(1)\t%i\t%i\tPredicted"%(tp,fp)
-			print "-(0)\t%i\t%i\tclass"%(fn,tn)
+			print("\tActual class")
+			print("\t+(1)\t-(0)")
+			print("+(1)\t%i\t%i\tPredicted"%(tp,fp))
+			print("-(0)\t%i\t%i\tclass"%(fn,tn))
 		return {'TP':tp,'FP':fp,'FN':fn,'TN':tn}
 	
 	def auc(self,fpnum=0):
@@ -336,12 +336,12 @@ if __name__ == '__main__':
 		df_data = load_decision_function(options.fpath)
 		roc = ROCCalc(df_data)
 		roc_n = int(options.fp_n)
-		print roc.auc(roc_n)
+		print(roc.auc(roc_n))
 		if options.ppath is not None:
 			roc.plot(options.ppath,title=options.ptitle)
 		if options.plotdots:
-			print ''
+			print('')
 			for pt in roc.derived_points:
-				print pt[0],pt[1]
+				print(pt[0],pt[1])
 	except TypeError:
 		parser.print_help()
